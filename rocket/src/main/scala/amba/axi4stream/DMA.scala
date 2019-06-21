@@ -158,13 +158,37 @@ class StreamingAXI4DMA
     val writeWatchdog = IO(Output(Bool()))
     val writeError = IO(Output(Bool()))
 
+    // true writing
+    val beacon = IO(Input(Bool()))
+    val requestValidPrev = RegInit(false.B)
+    val beaconPrev = RegInit(false.B)
+    val waitBeacon = RegInit(false.B)
+    val systemReady = RegInit(false.B)
+    beaconPrev := beacon
+
     val streamToMemRequest = IO(Flipped(Decoupled(
       DMARequest(addrWidth = addrWidth, lenWidth = addrWidth)
     )))
     val streamToMemLengthRemaining = IO(Output(UInt(lenWidth.W)))
 
     val streamToMemQueue = Module(new Queue(DMARequest(addrWidth = addrWidth, lenWidth = addrWidth), 8))
-    streamToMemQueue.io.enq <> streamToMemRequest
+
+    // logic to control the system enq at the beginning of a package
+    requestValidPrev := streamToMemRequest.valid
+    when(!requestValidPrev && streamToMemRequest.valid){
+      waitBeacon := true.B
+    }
+    when(waitBeacon && beaconPrev && !beacon){
+      systemReady := true.B
+    }
+    when(requestValidPrev && !streamToMemRequest.valid){
+      waitBeacon := false.B
+      systemReady := false.B
+    }
+
+    streamToMemQueue.io.enq.bits := streamToMemRequest.bits
+    streamToMemQueue.io.enq.valid := systemReady
+    streamToMemRequest.ready := streamToMemQueue.io.enq.ready
 
     val streamToMemQueueCount = IO(Output(UInt()))
     streamToMemQueueCount := streamToMemQueue.io.count
@@ -225,6 +249,7 @@ class StreamingAXI4DMA
       readBeatCounter := 0.U
       readWatchdogCounter := 0.U
     }
+
 
     axi.aw.valid := !writing && enable && streamToMemSimple.io.out.valid
     streamToMemSimple.io.out.ready := !writing && enable && axi.aw.ready
@@ -333,6 +358,9 @@ class StreamingAXI4DMAWithCSR
     val watchdogReg = RegInit(0.U(32.W))
     val intReg = RegInit(0.U(6.W))
 
+    val beacon = IO(Input(Bool()))
+
+    dma.beacon := beacon
     dma.enable := enReg
 
     when (dma.readComplete) {
@@ -533,6 +561,10 @@ class StreamingAXI4DMAWithCSRWithScratchpad
   topXbar := mem.get
 
   lazy val module = new LazyModuleImp(this) {
+    val beacon = IO(Input(Bool()))
+
+    dma.module.beacon := beacon
+
     mem.get.out.foreach { o => o._2.slave.slaves.foreach(s => println(s"${s.name} is ${s.interleavedId}")) }
   }
 }
