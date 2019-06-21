@@ -181,7 +181,7 @@ class StreamingAXI4DMA
     when(waitBeacon && beaconPrev && !beacon){
       systemReady := true.B
     }
-    when(requestValidPrev && !streamToMemRequest.valid){
+    when(writeComplete){
       waitBeacon := false.B
       systemReady := false.B
     }
