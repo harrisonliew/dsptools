@@ -166,6 +166,11 @@ class StreamingAXI4DMA
     val systemReady = RegInit(false.B)
     beaconPrev := beacon
 
+    // true Read
+    val requestValidReadPrev = RegInit(false.B)
+    val waitBeaconRead = RegInit(false.B)
+    val systemReadyRead = RegInit(false.B)
+
     val streamToMemRequest = IO(Flipped(Decoupled(
       DMARequest(addrWidth = addrWidth, lenWidth = addrWidth)
     )))
@@ -181,7 +186,7 @@ class StreamingAXI4DMA
     when(waitBeacon && beaconPrev && !beacon){
       systemReady := true.B
     }
-    when(writeComplete){
+    when(systemReady){
       waitBeacon := false.B
       systemReady := false.B
     }
@@ -202,8 +207,23 @@ class StreamingAXI4DMA
     )))
     val memToStreamLengthRemaining = IO(Output(UInt(lenWidth.W)))
 
+    // logic to control the system enq at the beginning of a package
+    requestValidReadPrev := memToStreamRequest.valid
+    when(!requestValidReadPrev && memToStreamRequest.valid){
+      waitBeaconRead := true.B
+    }
+    when(waitBeaconRead && beaconPrev && !beacon){
+      systemReadyRead := true.B
+    }
+    when(systemReadyRead){
+      waitBeaconRead := false.B
+      systemReadyRead := false.B
+    }
+
     val memToStreamQueue = Module(new Queue(DMARequest(addrWidth = addrWidth, lenWidth = addrWidth), 8))
-    memToStreamQueue.io.enq <> memToStreamRequest
+    memToStreamQueue.io.enq.bits :=  memToStreamRequest.bits
+    memToStreamQueue.io.enq.valid := systemReadyRead
+    memToStreamRequest.ready:= memToStreamQueue.io.enq.ready
 
     val memToStreamQueueCount = IO(Output(UInt()))
     memToStreamQueueCount := memToStreamQueue.io.count
@@ -268,6 +288,7 @@ class StreamingAXI4DMA
     }
 
     val readBuffer = Module(new Queue(chiselTypeOf(axi.r.bits), beatLength))
+    readBuffer.reset := memToStreamRequest.valid
     readBuffer.io.enq <> axi.r
     readBuffer.io.deq.ready := out.ready
     out.valid := readBuffer.io.deq.valid
@@ -294,6 +315,7 @@ class StreamingAXI4DMA
     }
     // Stream to AXI write
     val writeBuffer = Module(new Queue(in.bits.cloneType, beatLength))
+    writeBuffer.reset := systemReady
     writeBuffer.io.enq <> in
     axi.w.bits.data := writeBuffer.io.deq.bits.data
     axi.w.bits.strb := writeBuffer.io.deq.bits.makeStrb
