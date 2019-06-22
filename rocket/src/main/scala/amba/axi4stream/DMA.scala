@@ -7,6 +7,7 @@ import freechips.rocketchip.amba.axi4._
 import freechips.rocketchip.config.Parameters
 import freechips.rocketchip.diplomacy._
 import freechips.rocketchip.regmapper._
+import freechips.rocketchip.util.SynchronizerShiftReg
 
 /**
   * Bundle class for dma request descriptors
@@ -584,8 +585,8 @@ class StreamingAXI4DMAWithCSRWithScratchpad
 
   lazy val module = new LazyModuleImp(this) {
     val beacon = IO(Input(Bool()))
-
-    dma.module.beacon := beacon
+    val beaconSync = SynchronizerShiftReg(beacon)
+    dma.module.beacon := beaconSync
 
     mem.get.out.foreach { o => o._2.slave.slaves.foreach(s => println(s"${s.name} is ${s.interleavedId}")) }
   }
