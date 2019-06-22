@@ -49,7 +49,7 @@ class TLRegmapExample extends TLRegisterRouter(0, "example", Seq("dsptools", "ex
   }
 }
 
-/*class AXI4RegmapExample extends AXI4RegisterRouter(0, beatBytes = 8, interrupts = 1)(
+class AXI4RegmapExample extends AXI4RegisterRouter(0, "test", Nil, beatBytes = 8, interrupts = 1)(
   new AXI4RegBundle(null, _))(
     new AXI4RegModule(null, _, _) with RegmapExample)(Parameters.empty) {
   def standaloneParams = AXI4BundleParameters(addrBits = 64, dataBits = 64, idBits = 1, userBits = 0, wcorrupt = false)
@@ -71,7 +71,7 @@ class TLRegmapExample extends TLRegisterRouter(0, "example", Seq("dsptools", "ex
     io := ioIntNode.bundle
     io
   }
-}*/
+}
 
 class APBRegmapExample extends APBRegisterRouter(0, beatBytes = 8, interrupts = 1)(
   new APBRegBundle(null, _))(
