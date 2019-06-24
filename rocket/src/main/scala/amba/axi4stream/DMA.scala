@@ -177,7 +177,7 @@ class StreamingAXI4DMA
     )))
     val streamToMemLengthRemaining = IO(Output(UInt(lenWidth.W)))
 
-    val streamToMemQueue = Module(new Queue(DMARequest(addrWidth = addrWidth, lenWidth = addrWidth), 8))
+    val streamToMemQueue = Module(new Queue(DMARequest(addrWidth = addrWidth, lenWidth = addrWidth), 2))
 
     // logic to control the system enq at the beginning of a package
     requestValidPrev := streamToMemRequest.valid
@@ -221,7 +221,7 @@ class StreamingAXI4DMA
       systemReadyRead := false.B
     }
 
-    val memToStreamQueue = Module(new Queue(DMARequest(addrWidth = addrWidth, lenWidth = addrWidth), 8))
+    val memToStreamQueue = Module(new Queue(DMARequest(addrWidth = addrWidth, lenWidth = addrWidth), 2))
     memToStreamQueue.io.enq.bits :=  memToStreamRequest.bits
     memToStreamQueue.io.enq.valid := systemReadyRead
     memToStreamRequest.ready:= memToStreamQueue.io.enq.ready
