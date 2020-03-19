@@ -49,7 +49,7 @@ class TLRegmapExample extends TLRegisterRouter(0, "example", Seq("dsptools", "ex
   }
 }
 
-class AXI4RegmapExample extends AXI4RegisterRouter(0, "test", Nil, beatBytes = 8, interrupts = 1)(
+class AXI4RegmapExample extends AXI4RegisterRouter(0, beatBytes = 8, interrupts = 1)(
   new AXI4RegBundle(null, _))(
     new AXI4RegModule(null, _, _) with RegmapExample)(Parameters.empty) {
   def standaloneParams = AXI4BundleParameters(addrBits = 64, dataBits = 64, idBits = 1, userBits = 0, wcorrupt = false)
@@ -116,10 +116,10 @@ class MemMasterSpec extends FlatSpec with Matchers {
     def memTL = c.ioMem
   }
 
-  /*class AXI4RegmapExampleTester(c: AXI4RegmapExample) extends RegmapExampleTester(c.module)
+  class AXI4RegmapExampleTester(c: AXI4RegmapExample) extends RegmapExampleTester(c.module)
   with AXI4MasterModel {
     def memAXI = c.ioMem
-  }*/
+  }
 
   class APBRegmapExampleTester(c: APBRegmapExample) extends RegmapExampleTester(c.module)
   with APBMasterModel {
@@ -139,12 +139,12 @@ class MemMasterSpec extends FlatSpec with Matchers {
     })
   }
 
-  /*it should "work with AXI-4" in {
+  it should "work with AXI-4" in {
     lazy val dut = LazyModule(new AXI4RegmapExample)
     assert(chisel3.iotesters.Driver.execute(Array[String](), () => dut.module) { c =>
       new AXI4RegmapExampleTester(dut)
     })
-  }*/
+  }
 
   it should "work with APB" in {
     lazy val dut = LazyModule(new APBRegmapExample)
